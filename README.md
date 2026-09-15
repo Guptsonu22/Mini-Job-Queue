@@ -2,13 +2,20 @@
 
 A full-stack job queue management dashboard built for the Airth React + NestJS internship assignment. The application provides a REST API and a responsive React dashboard for creating, filtering, transitioning, and deleting job records with proper validation, error handling, and concurrency-safe status transitions.
 
+## Live Demo
+
+- **Frontend:** https://mini-job-queue.vercel.app/
+- **Backend API:** https://mini-job-queue-1.onrender.com
+- **Swagger Documentation:** https://mini-job-queue-1.onrender.com/api/docs
+- **Health Check:** https://mini-job-queue-1.onrender.com/health
+
 ## Links
 
 - **GitHub:** https://github.com/Guptsonu22/Mini-Job-Queue
-- **Live Frontend:** Not deployed yet
-- **Live Backend:** Not deployed yet
-- **Swagger API Docs:** Not deployed yet
-- **Health Check:** Not deployed yet
+- **Live Frontend:** https://mini-job-queue.vercel.app/
+- **Live Backend:** https://mini-job-queue-1.onrender.com
+- **Swagger API Docs:** https://mini-job-queue-1.onrender.com/api/docs
+- **Health Check:** https://mini-job-queue-1.onrender.com/health
 
 ## Overview
 
@@ -20,6 +27,8 @@ This project implements a job queue management system with:
 - **Concurrency-safe:** Atomic conditional database updates prevent race conditions when multiple clients attempt the same transition simultaneously.
 
 The backend is the source of truth. Frontend transition checks exist only for user experience; direct API calls receive the same validation and protection.
+
+**Important scope clarification:** This application manages job records and their lifecycle statuses. It does not execute real background jobs or run actual worker processes. It is a job queue management dashboard, not a complete background job execution system.
 
 ## Features
 
@@ -38,11 +47,17 @@ The backend is the source of truth. Frontend transition checks exist only for us
 - Atomic concurrent update protection (409 Conflict on race)
 - SQLite for local development, PostgreSQL for production
 
-## Demo
+## How to Use
 
-The application can be run locally using the setup instructions below.
-
-A live demo link will be added after deployment.
+1. Open the live frontend: https://mini-job-queue.vercel.app/
+2. Click **Create Job** → enter a title and type → click **Create Job**
+3. The job appears in the table with status **Pending**
+4. Click **Start** to move it to **Running**
+5. From **Running**, click **Complete** or **Fail** to transition to a terminal state
+6. Use the filter pills (All / Pending / Running / Completed / Failed) to narrow the list
+7. Status cards at the top show live counts for each state
+8. Click **Delete** on any job to remove it (with confirmation)
+9. Test concurrency: open the dashboard in two tabs, create a pending job, click **Start** in both tabs simultaneously → one succeeds, one shows a conflict notice and reloads the actual state
 
 ## Tech Stack
 
@@ -66,7 +81,7 @@ A live demo link will be added after deployment.
 - React Hooks for state management
 - Vitest + React Testing Library
 
-### Deployment Targets
+### Deployment
 
 - Backend: Render (Web Service + Managed PostgreSQL)
 - Frontend: Vercel
@@ -190,6 +205,10 @@ Mini-Job-Queue/
 - Same-status updates (e.g., `running → running`) are rejected
 - All invalid transitions return `409 Conflict`
 
+## Status Transition Rules
+
+The frontend mirrors transition rules for user experience (hiding invalid action buttons). The backend is the authoritative enforcer — direct API calls are subject to the same rules.
+
 ## Concurrency Handling
 
 ### The Problem
@@ -254,7 +273,7 @@ Final job status: running
 | GET    | `/health`                | Health check         | 200     | —                       |
 | GET    | `/api/docs`              | Swagger UI           | 200     | —                       |
 
-> **Note:** No `/api` prefix is used. Routes are mounted at root (`/jobs`, `/health`, `/api/docs`).
+> **Note:** No `/api` prefix is used for job routes. Routes are mounted at root (`/jobs`, `/health`, `/api/docs`).
 
 ### Create Job
 
@@ -449,10 +468,10 @@ VITE_API_URL=http://localhost:3000
 |-------------|---------|----------|
 | `NODE_ENV` | `production` | — |
 | `DATABASE_URL` | PostgreSQL connection string | — |
-| `FRONTEND_URL` | `https://<vercel-app>.vercel.app` | — |
-| `VITE_API_URL` | — | `https://<render-backend>.onrender.com` |
+| `FRONTEND_URL` | `https://mini-job-queue.vercel.app` | — |
+| `VITE_API_URL` | — | `https://mini-job-queue-1.onrender.com` |
 
-> **Important:** `VITE_API_URL` must not include `/api` — backend routes are mounted at root (`/jobs`, not `/api/jobs`). Vite requires `VITE_` prefix for client-exposed variables.
+> **Important:** `VITE_API_URL` must not include `/api` — backend routes are mounted at root (`/jobs`, not `/api/jobs`). Vite requires `VITE_` prefix for client-exposed variables. Do not add a trailing slash to `FRONTEND_URL`.
 
 ## Testing
 
@@ -482,13 +501,28 @@ npm run lint    # 0 errors, 1 warning (setState in useEffect — standard patter
 
 ### Live API Verification (manual)
 
-Verified with curl against running backend:
+Verified with curl against deployed backend:
 - CRUD operations
 - All invalid transitions → 409
 - Validation errors → 400
 - Missing job → 404
 - Concurrent race → `[200, 409]`
 - Swagger UI → 200
+
+### Production Verification (manual)
+
+Verified against live deployed URLs:
+- Frontend loads at https://mini-job-queue.vercel.app/
+- Backend health at https://mini-job-queue-1.onrender.com/health
+- Swagger at https://mini-job-queue-1.onrender.com/api/docs
+- Create job → appears in list
+- Transition `pending → running → completed` → counts update
+- Invalid transition → 409 error shown
+- Delete job → removal confirmed
+- Filter by status → works
+- Concurrency test: two tabs, same pending job, both click Start → one 200, one 409 → notice appears → final status = running
+- Network tab confirms all requests go to `https://mini-job-queue-1.onrender.com/jobs`
+- CORS verified: no errors in browser console
 
 ## Production Build
 
@@ -514,17 +548,17 @@ npm run build       # TypeScript compile + Vite build → dist/
 
 1. Create a **Web Service** on Render, connect GitHub repo `Guptsonu22/Mini-Job-Queue`
 2. **Root Directory:** `backend`
-3. **Build Command:** `npm install && npm run build`
+3. **Build Command:** `npm install && npx nest build`
 4. **Start Command:** `npm run start:prod`
 5. **Node Version:** 20 (or specify in `package.json` engines)
 6. Add a **Managed PostgreSQL** database on Render
 7. Set environment variables:
    - `NODE_ENV=production`
    - `DATABASE_URL` = (copy Internal Connection String from Postgres)
-   - `FRONTEND_URL` = `https://<your-vercel-app>.vercel.app` (update after Vercel deploy)
+   - `FRONTEND_URL` = `https://mini-job-queue.vercel.app`
 8. **Health Check Path:** `/health`
-9. Deploy → verify `https://<your-app>.onrender.com/health` returns `{"status":"ok"}`
-10. Verify `https://<your-app>.onrender.com/api/docs` loads Swagger UI
+9. Deploy → verify `https://mini-job-queue-1.onrender.com/health` returns `{"status":"ok","timestamp":"..."}`
+10. Verify `https://mini-job-queue-1.onrender.com/api/docs` loads Swagger UI
 11. Test POST/GET/PATCH/DELETE against production URL
 
 > **Critical:** Do not use SQLite on Render. The filesystem is ephemeral — data would be lost on restart. Use the managed PostgreSQL.
@@ -536,9 +570,8 @@ npm run build       # TypeScript compile + Vite build → dist/
 3. **Framework Preset:** Vite (auto-detected)
 4. **Build Command:** `npm run build`
 5. **Output Directory:** `dist`
-6. **Environment Variable:** `VITE_API_URL=https://<your-render-backend>.onrender.com`
+6. **Environment Variable:** `VITE_API_URL=https://mini-job-queue-1.onrender.com`
 7. Deploy → verify dashboard loads and Network tab shows requests to Render backend
-8. After Vercel provides the live URL, update Render backend `FRONTEND_URL` to the Vercel URL and redeploy backend
 
 ### Post-Deployment Verification
 
@@ -614,11 +647,11 @@ This is a small, zero-dependency addition that significantly improves operationa
 - [x] Concurrency handling (atomic conditional UPDATE)
 - [x] Automated tests (backend unit 11/11, E2E 11/11, frontend 12/12)
 - [x] README documentation
-- [ ] Live backend deployed (Render)
-- [ ] Live frontend deployed (Vercel)
-- [ ] Production URLs verified
-- [ ] Production CORS verified
-- [ ] Production CRUD verified
+- [x] Live backend deployed (Render)
+- [x] Live frontend deployed (Vercel)
+- [x] Production URLs verified
+- [x] Production CORS verified
+- [x] Production CRUD verified
 
 ---
 
