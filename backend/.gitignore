@@ -1,0 +1,21 @@
+# deps
+node_modules/
+dist/
+
+# env
+.env
+.env.*
+!.env.example
+
+# sqlite local db
+*.sqlite
+*.sqlite-journal
+
+# logs / coverage
+coverage/
+*.log
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
